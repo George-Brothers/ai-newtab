@@ -9,7 +9,12 @@ type Plan = { nextLesson?: string; focus?: string; items: string[] };
 export function parsePlan(md: string): Plan {
   const nextLesson = md.match(/^next_lesson:\s*(.+)$/m)?.[1].trim();
   const focus = md.match(/\*\*This week's focus:\*\*\s*(.+)/)?.[1].trim();
-  const items = [...md.matchAll(/^\d+\.\s+\*\*(.+?)\.?\*\*/gm)].map((m) => m[1]);
+  // today.md can hold more than one day's list; show the first (numbering restarts at 1).
+  const items: string[] = [];
+  for (const m of md.matchAll(/^(\d+)\.\s+\*\*(.+?)\.?\*\*/gm)) {
+    if (m[1] === "1" && items.length) break;
+    items.push(m[2]);
+  }
   return { nextLesson, focus, items };
 }
 
