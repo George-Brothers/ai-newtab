@@ -7,10 +7,20 @@ import { toRenderable } from "@/lib/transpile";
 import { ApiKeySetup } from "./components/ApiKeySetup";
 import { BuildProgress } from "./components/BuildProgress";
 import { HomepagePreview } from "./components/HomepagePreview";
-import { SettingsModal } from "./components/SettingsModal";
-import { btn, errorBox } from "./components/ui";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { CloseIcon, RefreshIcon, SlidersIcon } from "./components/icons";
 import ChinesePlanCard from "./components/ChinesePlanCard";
 import { useHomepageBuild } from "./useHomepageBuild";
+
+/** "Updated 3h ago" for the controls pill. */
+function updatedLabel(iso: string | null) {
+  if (!iso) return null;
+  const mins = Math.round((Date.now() - Date.parse(iso)) / 60_000);
+  if (mins < 1) return "Updated just now";
+  if (mins < 60) return `Updated ${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  return hours < 24 ? `Updated ${hours}h ago` : `Updated ${Math.round(hours / 24)}d ago`;
+}
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -22,6 +32,8 @@ export default function App() {
   const [intervalHours, setIntervalHours] = useState(DEFAULT_REBUILD_INTERVAL_HOURS);
   /** Transpiled homepage, ready for Sandpack. */
   const [renderedCode, setRenderedCode] = useState<string | null>(null);
+  /** ISO time the current homepage was built. */
+  const [builtAt, setBuiltAt] = useState<string | null>(null);
   /** A session left mid-flight, offered as "Resume interrupted build". */
   const [resumable, setResumable] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -30,7 +42,10 @@ export default function App() {
   /** The error the user dismissed, so a stale banner doesn't linger. */
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
-  const { state, build, cancel } = useHomepageBuild((code) => setRenderedCode(toRenderable(code)));
+  const { state, build, cancel } = useHomepageBuild((code) => {
+    setRenderedCode(toRenderable(code));
+    setBuiltAt(new Date().toISOString());
+  });
 
   // Once a build finishes, drop back to the homepage view.
   useEffect(() => {
@@ -54,7 +69,10 @@ export default function App() {
         setAutoRebuild(settings.autoRebuild);
         setIntervalHours(settings.rebuildIntervalHours ?? DEFAULT_REBUILD_INTERVAL_HOURS);
         setResumable(activeSession ?? null);
-        if (homepage?.code) setRenderedCode(toRenderable(homepage.code));
+        if (homepage?.code) {
+          setRenderedCode(toRenderable(homepage.code));
+          setBuiltAt(homepage.timestamp);
+        }
       } finally {
         setLoading(false);
       }
@@ -66,14 +84,20 @@ export default function App() {
     setApiKey(key);
   }, []);
 
+  const changeKey = useCallback(async () => {
+    await extensionStore.remove(KEYS.apiKey);
+    setShowSettings(false);
+    setApiKey(null);
+  }, []);
+
+  // The current homepage stays up while a rebuild runs; the pill shows progress.
   const savePrompt = useCallback(
-    async (prompt: string, sites: string[]) => {
+    async (prompt: string, sites: string[], rebuild: boolean) => {
       await Promise.all([saveSetting("systemPrompt", prompt), saveSetting("blockedSites", sites)]);
       setBlockedSites(sites);
       setSystemPrompt(prompt);
       setShowSettings(false);
-      setRenderedCode(null);
-      build();
+      if (rebuild) build();
     },
     [build],
   );
@@ -91,8 +115,9 @@ export default function App() {
     setIntervalHours(next);
     await saveSetting("rebuildIntervalHours", next);
   }, []);
+  const closeSettings = useCallback(() => setShowSettings(false), []);
 
-  if (loading) return <div style={{ padding: 20, textAlign: "center" }}>Loading…</div>;
+  if (loading) return null;
   if (!apiKey) return <ApiKeySetup onSave={saveKey} />;
 
   // With no homepage to fall back to, a running build takes over the tab.
@@ -106,122 +131,120 @@ export default function App() {
     );
   }
 
+  const settings = showSettings && (
+    <SettingsPanel
+      initialPrompt={systemPrompt}
+      blockedSites={blockedSites}
+      model={model}
+      onChangeModel={changeModel}
+      autoRebuild={autoRebuild}
+      onToggleAutoRebuild={toggleAutoRebuild}
+      intervalHours={intervalHours}
+      onChangeInterval={changeInterval}
+      apiKey={apiKey}
+      onChangeKey={changeKey}
+      building={state.running}
+      onClose={closeSettings}
+      onSave={savePrompt}
+    />
+  );
+
   if (!renderedCode) {
     return (
-      <div style={{ maxWidth: 560, margin: "14vh auto", padding: 24, fontFamily: "system-ui" }}>
-        <h1 style={{ fontSize: 26 }}>Build your homepage</h1>
-        <p style={{ color: "#555", lineHeight: 1.6 }}>
-          The agent reads your browsing history, opens the pages you actually follow, and writes a
-          homepage from what it finds today.
-        </p>
-        {state.error && (
-          <div style={{ ...errorBox, margin: "16px 0", padding: 12, borderRadius: 4 }}>{state.error}</div>
-        )}
-        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-          <button style={btn} onClick={() => build()}>
-            Build today&apos;s homepage
-          </button>
-          {resumable && (
-            <button style={{ ...btn, backgroundColor: "#555" }} onClick={() => build({ resume: true })}>
-              Resume interrupted build
-            </button>
+      <main className="screen">
+        <div className="screen-card">
+          <h1 className="screen-title">Build your first homepage</h1>
+          <p className="screen-lede">An agent reads the sites you follow and writes you a fresh front page.</p>
+          <ol className="steps-preview">
+            <li>
+              <span>
+                <b>Reads your history</b> to find the sites you visit most.
+              </span>
+            </li>
+            <li>
+              <span>
+                <b>Opens those pages</b> in this browser, signed in as you.
+              </span>
+            </li>
+            <li>
+              <span>
+                <b>Writes your homepage</b> from what&apos;s new on them today.
+              </span>
+            </li>
+          </ol>
+          {state.error && (
+            <div className="alert" role="alert">
+              {state.error}
+            </div>
           )}
+          <div className="screen-actions">
+            <button className="btn btn-primary btn-lg" onClick={() => build()}>
+              Build today&apos;s homepage
+            </button>
+            {resumable && (
+              <button className="btn btn-secondary btn-lg" onClick={() => build({ resume: true })}>
+                Resume interrupted build
+              </button>
+            )}
+            <button className="btn btn-ghost btn-lg" onClick={() => setShowSettings(true)}>
+              Customize first
+            </button>
+          </div>
+          <p className="screen-note">The first build takes a few minutes and is billed to your API key.</p>
         </div>
         <ChinesePlanCard />
-      </div>
+        {settings}
+      </main>
     );
   }
 
   const showError = state.error && dismissedError !== state.error;
+  const updated = updatedLabel(builtAt);
 
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
-      <div style={{ position: "fixed", top: 20, right: 20, zIndex: 999, display: "flex", gap: 8 }}>
-        {state.running ? (
-          // A build is running in the background (from here, another tab, or the
-          // scheduled rebuild). Let the user watch it without losing this page.
-          <button
-            style={{ ...btn, backgroundColor: "#0a7", display: "flex", alignItems: "center", gap: 8 }}
-            onClick={() => setViewProgress(true)}
-            title="View build progress"
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "white",
-                animation: "hb-pulse 1.2s ease-in-out infinite",
-              }}
-            />
-            Building… {Math.min(state.stepIndex + 1, BUILD_STEPS.length)}/{BUILD_STEPS.length}
-          </button>
-        ) : (
-          <button style={btn} onClick={() => build()} title="Rebuild now">
-            ↻ Rebuild
-          </button>
-        )}
-        <button style={btn} onClick={() => setShowSettings(true)} title="Customize homepage">
-          ⚙️ Settings
-        </button>
-      </div>
+    <>
+      <HomepagePreview code={renderedCode} />
 
-      {showError && (
-        <div
-          style={{
-            ...errorBox,
-            position: "fixed",
-            top: 20,
-            left: 20,
-            right: 260,
-            zIndex: 999,
-            padding: "10px 14px",
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-          }}
-        >
-          <span style={{ flex: 1 }}>
-            <b>Build failed.</b> {state.error}
-          </span>
-          <button style={{ ...btn, padding: "4px 10px", backgroundColor: "#a02620" }} onClick={() => build()}>
-            Retry
-          </button>
-          <button
-            onClick={() => setDismissedError(state.error)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#a02620",
-              cursor: "pointer",
-              fontSize: 16,
-              lineHeight: 1,
-            }}
-            title="Dismiss"
-          >
-            ✕
+      <div className={`controls${state.running || showError ? " pinned" : ""}`}>
+        <div className="pill">
+          {state.running ? (
+            // A build is running in the background (from here, another tab, or the
+            // scheduled rebuild). Let the user watch it without losing this page.
+            <button className="pill-building" onClick={() => setViewProgress(true)} title="View build progress">
+              <span className="dot" />
+              Building · {Math.min(state.stepIndex + 1, BUILD_STEPS.length)}/{BUILD_STEPS.length}
+            </button>
+          ) : (
+            <>
+              {updated && <span className="pill-status">{updated}</span>}
+              <button className="icon-btn" onClick={() => build()} aria-label="Rebuild now" title="Rebuild now">
+                <RefreshIcon />
+              </button>
+            </>
+          )}
+          <button className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
+            <SlidersIcon />
           </button>
         </div>
-      )}
 
-      <HomepagePreview code={renderedCode} />
+        {showError && (
+          <div className="toast" role="alert">
+            <div className="toast-head">
+              Rebuild failed
+              <button className="icon-btn" onClick={() => setDismissedError(state.error)} aria-label="Dismiss">
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="toast-body">{state.error} Your current homepage is unchanged.</div>
+            <button className="btn btn-secondary btn-sm" onClick={() => build()}>
+              Try again
+            </button>
+          </div>
+        )}
+      </div>
+
       <ChinesePlanCard />
-
-      {showSettings && (
-        <SettingsModal
-          initialPrompt={systemPrompt}
-          blockedSites={blockedSites}
-          model={model}
-          onChangeModel={changeModel}
-          autoRebuild={autoRebuild}
-          onToggleAutoRebuild={toggleAutoRebuild}
-          intervalHours={intervalHours}
-          onChangeInterval={changeInterval}
-          onClose={() => setShowSettings(false)}
-          onSave={savePrompt}
-        />
-      )}
-    </div>
+      {settings}
+    </>
   );
 }

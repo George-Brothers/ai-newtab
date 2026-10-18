@@ -60,7 +60,9 @@ you open.
 
 ## Make it yours
 
-Click **⚙️ Settings** on the new tab.
+Move your mouse to the top-right corner of the new tab. A small bar appears with
+when your page was last updated, **↻ Rebuild**, and **Settings**. Settings opens
+as a panel on the right.
 
 **Instructions.** Anything you write here goes into every build and takes priority
 over the agent's own defaults. This box sets both the content and the look:
@@ -73,11 +75,13 @@ over the agent's own defaults. This box sets both the content and the look:
 | *"Green-on-black terminal, monospace, like a 1980s BBS."* | Exactly that |
 | *"Skip sports and politics. Always show the weather and my next three calendar events."* | Your rules, every day |
 
-Click **Save & rebuild** to apply them right away.
+Click an example under the box to start from it. **Save & rebuild** applies your
+changes right away; **Save** keeps them for the next build. Your current homepage
+stays up while the new one builds.
 
 **Sites the agent never reads.** Enter one host per line; subdomains are included,
 and `*.example.com` is supported. The editable defaults include common webmail,
-sign-in and document hosts. **Save & rebuild** saves the list and applies it to
+sign-in and document hosts. Saving applies the list to
 history summaries and URLs requested through `getPageHtml`. A page that redirects
 onto a blocked host is dropped before its content is uploaded. Local-network
 addresses (localhost, private IPs, `.local` and `.internal` hosts) are always blocked.
@@ -96,6 +100,9 @@ background. It only starts after you've built once by hand, and it won't retry a
 failed build until the next interval, so it never loops.
 
 **↻ Rebuild** in the top-right corner rebuilds right away.
+
+**API key.** **Change key** at the bottom of Settings takes you back to the key
+screen.
 
 ## Good to know
 

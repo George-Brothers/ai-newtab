@@ -30,39 +30,20 @@ export default function ChinesePlanCard() {
 
   if (!plan) return null;
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 20,
-        right: 20,
-        zIndex: 998,
-        width: 300,
-        maxWidth: "calc(100vw - 32px)",
-        background: "white",
-        border: "1px solid #ddd",
-        borderRadius: 8,
-        boxShadow: "0 4px 16px rgba(0,0,0,.12)",
-        padding: 14,
-        fontFamily: "system-ui",
-        fontSize: 13,
-        color: "#222",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <b style={{ fontSize: 15 }}>中文 today</b>
-        {plan.nextLesson && <span style={{ color: "#666" }}>Next lesson {plan.nextLesson}</span>}
+    <aside className="plan-card" aria-label="Chinese study plan for today">
+      <div className="plan-head">
+        <span className="plan-title">中文 today</span>
+        {plan.nextLesson && <span className="plan-next">Next lesson {plan.nextLesson}</span>}
       </div>
-      {plan.focus && <p style={{ margin: "8px 0", color: "#555", lineHeight: 1.4 }}>{plan.focus}</p>}
-      <ol style={{ margin: "8px 0", paddingLeft: 18, lineHeight: 1.5 }}>
+      {plan.focus && <p className="plan-focus">{plan.focus}</p>}
+      <ol className="plan-items">
         {plan.items.map((item) => (
           <li key={item}>{item}</li>
         ))}
       </ol>
-      <button
-        style={{ width: "100%", padding: "8px 16px", border: "none", borderRadius: 4, background: "#0066cc", color: "white", cursor: "pointer", fontSize: 14 }}
-        onClick={() => browser.tabs.create({ url: VAULT_APP })}>
+      <button className="btn btn-secondary btn-sm" onClick={() => browser.tabs.create({ url: VAULT_APP })}>
         Open dashboard
       </button>
-    </div>
+    </aside>
   );
 }

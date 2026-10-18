@@ -34,23 +34,26 @@ export function BuildProgress({
   const ss = String(elapsed % 60).padStart(2, "0");
 
   return (
-    <div className="build">
+    <main className="build">
       <div className="build-left">
         <div className="build-panel">
           <div className="build-top">
-            <span className="build-title">Building your homepage</span>
-            <span className="build-elapsed">
+            <h1 className="build-title">Building your homepage</h1>
+            <span className="build-elapsed" aria-label="Elapsed time">
               {mm}:{ss}
             </span>
           </div>
+          <p className="build-sub">
+            This takes a few minutes. You can close this tab; the build keeps going in the background.
+          </p>
 
           <ol className="build-steps">
             {BUILD_STEPS.map((step, i) => {
               const status = i < stepIndex ? "done" : i === stepIndex ? "active" : "pending";
               return (
-                <li key={step.label} className={`build-step ${status}`}>
+                <li key={step.label} className={`build-step ${status}`} aria-current={status === "active" ? "step" : undefined}>
                   <span className="build-marker">{status === "done" ? "✓" : i + 1}</span>
-                  <div className="build-step-body">
+                  <div>
                     <div className="build-step-label">{step.label}</div>
                     {status === "active" && detail && <div className="build-step-detail">{detail}</div>}
                   </div>
@@ -59,36 +62,36 @@ export function BuildProgress({
             })}
           </ol>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="build-cancel" onClick={onCancel}>
-              Cancel
-            </button>
+          <div className="build-actions">
             {onBack && (
-              <button className="build-cancel" style={{ background: "transparent" }} onClick={onBack}>
+              <button className="btn btn-secondary" onClick={onBack}>
                 ← Back to homepage
               </button>
             )}
+            <button className="btn btn-ghost danger" onClick={onCancel}>
+              Cancel build
+            </button>
           </div>
         </div>
       </div>
 
       <div className="build-right">
         <div className="build-panel">
-          <div className="build-eyebrow">Agent</div>
-          <div className="build-narration" ref={narrRef}>
-            {narration || "Warming up — reading what you’ve been browsing…"}
+          <div className="build-eyebrow">What the agent is doing</div>
+          <div className={`build-narration${narration ? "" : " waiting"}`} ref={narrRef} aria-live="polite">
+            {narration || "Warming up. Reading what you’ve been browsing…"}
           </div>
 
           {logs.length > 0 && (
-            <>
-              <div className="build-eyebrow build-log-label">Activity log</div>
+            <details className="build-log-details">
+              <summary>Activity log · {Math.min(logs.length, LOG_RETENTION)}</summary>
               <pre className="build-log" ref={logRef}>
                 {logs.slice(-LOG_RETENTION).join("\n")}
               </pre>
-            </>
+            </details>
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
