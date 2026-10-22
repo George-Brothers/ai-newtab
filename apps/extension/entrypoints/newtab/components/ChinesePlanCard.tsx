@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 // The Mac's xuexi-sync job copies the vault's wiki/today.md into the built extension's plan/ folder.
 const VAULT_APP =
-  "file:///Users/georgebrothers/Library/CloudStorage/GoogleDrive-george.brothers8@gmail.com/My%20Drive/iCloud%20Drive/Obsidian%20Vaults/%E5%AD%A6%E4%B9%A0%E4%B8%AD%E6%96%87/app/%E4%B8%AD%E6%96%87.html";
+  "file:///Users/georgebrothers/Library/CloudStorage/GoogleDrive-george.brothers8@gmail.com/My%20Drive/Obsidian%20Vaults/%E5%AD%A6%E4%B9%A0%E4%B8%AD%E6%96%87/app/%E4%B8%AD%E6%96%87.html";
 
 type Plan = { nextLesson?: string; focus?: string; items: string[] };
 
