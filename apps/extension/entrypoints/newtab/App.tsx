@@ -8,6 +8,7 @@ import { BuildProgress } from "./components/BuildProgress";
 import { HomepagePreview } from "./components/HomepagePreview";
 import { SettingsModal } from "./components/SettingsModal";
 import { btn, errorBox } from "./components/ui";
+import ChinesePlanCard from "./components/ChinesePlanCard";
 import { useHomepageBuild } from "./useHomepageBuild";
 
 export default function App() {
@@ -119,6 +120,7 @@ export default function App() {
             </button>
           )}
         </div>
+        <ChinesePlanCard />
       </div>
     );
   }
@@ -197,6 +199,7 @@ export default function App() {
       )}
 
       <HomepagePreview code={renderedCode} />
+      <ChinesePlanCard />
 
       {showSettings && (
         <SettingsModal
